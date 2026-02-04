@@ -14,9 +14,11 @@ class PerplexityClient:
             console.print("[red]Erro: PERPLEXITY_API_KEY não encontrada.[/red]")
             return None
 
-        # Garante o System Prompt
-        if not any(m["role"] == "system" for m in messages):
-            messages.insert(0, {"role": "system", "content": config.SYSTEM_PROMPT})
+        # FORÇANDO System Prompt como engenheiro CLI em toda chamada
+        system_msg = {"role": "system", "content": "Você é engenheiro CLI. Após código SEMPRE mostre as opções: 1.Criar arquivo 2.Editar 3.Continuar"}
+        
+        # Garante que não duplique, mas que seja a primeira
+        final_messages = [system_msg] + [m for m in messages if m["role"] != "system"]
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -24,7 +26,7 @@ class PerplexityClient:
         }
         data = {
             "model": model,
-            "messages": messages,
+            "messages": final_messages,
             "temperature": config.TEMPERATURE,
             "max_tokens": config.MAX_TOKENS
         }
@@ -38,7 +40,6 @@ class PerplexityClient:
             return None
 
     def summarize(self, history):
-        """Usa a API para resumir o histórico quando os tokens excedem o limite."""
         prompt = "Resuma o histórico de chat abaixo mantendo os pontos principais e o estado atual do projeto:\n\n"
         for m in history:
             prompt += f"{m['role']}: {m['content'][:500]}...\n"

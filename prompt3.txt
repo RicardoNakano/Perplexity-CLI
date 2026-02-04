@@ -1,0 +1,30 @@
+
+ADICIONE FINALIZANDO:
+
+1. pplx tui → ASCII interface (rich panel histórico + input)
+2. SEMPRE após código: "1.Criar soma.py 2.Editar main.py 3.Salvar PLAN.md"
+3. Auto-cria arquivo + code soma.py
+4. PPLX.md carrega contexto projeto
+5. PLAN.md checklist append [ ] passo 1
+
+MODELO "sonar" sempre. Windows OK.
+
+CÓDIGO EXATO mudanças + novos arquivos.
+```
+
+## Melhorias específicas pro seu código atual:
+
+**1. Adiciona no client.py** (linha antes `data = {`):
+```python
+messages = [{"role": "system", "content": "Você é engenheiro CLI. Após código SEMPRE: 1.Criar arquivo 2.Editar 3.Continuar"}] + messages
+```
+
+**2. 3 opções sempre** (cli.py):
+```python
+if resposta and ('```python' in resposta or 'def ' in resposta):
+    print("\n1. Criar arquivo com este código")
+    print("2. Editar arquivo existente") 
+    print("3. Continuar")
+    choice = input(" [1/2/3]: ")
+```
+
