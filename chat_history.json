@@ -1,0 +1,18 @@
+[
+  {
+    "role": "user",
+    "content": "oi perplexity"
+  },
+  {
+    "role": "assistant",
+    "content": "Oi! Tudo bem? Sou o Perplexity, um assistente de busca com IA que usa modelos avançados como **GPT-5**, **Claude 4** e **Gemini 2.5 Pro** para entender suas perguntas, buscar na web via Google, Bing e crawler próprio, e dar respostas resumidas com **citações transparentes** de fontes confiáveis.[1][2][7]\n\n### Como eu funciono:\n- **Entendo o contexto**: Interpreto nuances da sua query e lembro conversas anteriores para follow-ups.[1][2]\n- **Busco e resumo**: Puxo dados de sites autorizados, artigos e journals, compilando respostas claras e atualizadas.[2][3]\n- **Tipos de busca**: Quick (rápida), Pro (mais profunda, ilimitada no plano Pro de $20/mês), Academic (referências acadêmicas), Research (relatórios em 2-4 min analisando centenas de fontes) e Labs (criação de apps/arquivos).[1][2][4]\n\n### Recursos principais:\n- **Citações em cada fato**: Sempre mostro fontes para você verificar.[1][2][3]\n- **Model selector**: Escolha o modelo ideal (Pro subscribers).[2][4]\n- **Conversacional**: Como um chat com especialista, com memória contextual.[2]\n- **Extras no Pro/Max**: Geração de imagens, Tasks (alertas recorrentes), upload de arquivos, Spaces, Comet (navegador AI), Email Assistant.[3][4][5]\n\nPergunte qualquer coisa – de fatos rápidos a pesquisas profundas – e eu entrego com fontes![3][7] O que você quer saber?"
+  },
+  {
+    "role": "user",
+    "content": "planeje um CLI com TUI"
+  },
+  {
+    "role": "assistant",
+    "content": "Aqui vai um **plano completo para criar um CLI com TUI** em Python, focado em uma app de **ToDo List** simples e funcional. Usei **Textual** (framework rico para TUIs ricas e responsivas) combinado com **Click** para o CLI base, inspirado em exemplos reais como tutoriais de ToDo TUI.[1][2][3]\n\n### 1. **Requisitos e Setup Inicial**\n- **Python 3.9+** instalado.\n- Crie um ambiente virtual: `python -m venv todo_env && source todo_env/bin/activate` (Linux/Mac) ou `todo_env\\Scripts\\activate` (Windows).\n- Instale dependências: `pip install textual click`.\n  - **Textual**: Para TUI com widgets (botões, inputs, listas).[1][2]\n  - **Click**: Para CLI com subcomandos e integração TUI via `@tui` (com Trogon, opcional).[3]\n- Estrutura de pastas:\n  ```\n  todo_cli/\n  ├── todo.py          # App TUI principal\n  ├── cli.py           # CLI entrypoint\n  ├── todo.txt         # Arquivo de persistência (tasks)\n  ├── styles.tcss      # Estilos CSS-like para TUI\n  └── pyproject.toml   # Opcional para packaging\n  ```\n\n### 2. **Funcionalidades Principais**\n- **CLI básico**: `todo list`, `todo add \"tarefa\"`, `todo done 1`, `todo tui` (abre TUI).\n- **TUI interativa**: Lista de tasks, add/edit/delete, checkboxes, navegação com teclas (setas, Enter, q para sair).\n- Persistência em `todo.txt` (uma task por linha).\n\n### 3. **Código do CLI (cli.py)**\nUse Click para comandos rápidos, com opção de lançar TUI.\n```python\nimport click\nimport subprocess\nfrom pathlib import Path\n\n@click.group()\ndef cli():\n    pass\n\n@cli.command()\ndef list():\n    tasks = Path(\"todo.txt\").read_text().strip().split(\"\\n\")\n    for i, task in enumerate(tasks, 1):\n        click.echo(f\"{i}. {task}\")\n\n@cl"
+  }
+]

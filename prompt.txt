@@ -1,0 +1,59 @@
+```
+Crie CLI Python "pplx" COMPLETO igual Aider/Gemini CLI com **ASCII TUI + análise/plano/criação**:
+
+## ASCII TUI OBRIGATÓRIO (rich + prompt_toolkit)
+```
+┌─ Perplexity CLI ─────────────────────┐
+│ Histórico chat ↑                      │
+│                                      │
+│ PLAN.md checklist [ ] passo 1         │
+│ 1.Criar soma.py  2.Editar  3.Cont     │
+│ > Digite aqui... [Enviar]            │
+└──────────────────────────────────────┘
+```
+
+## CORE LOOP
+1. **ANALISA** PPLX.md + arquivos + query
+2. **PLANO** checklist PLAN.md
+3. **EXECUTA** cria/edita arquivos + `code arquivo`
+4. **TUI** sempre disponível (`pplx tui`)
+
+## COMANDOS
+```
+pplx chat                    # TUI interativa
+pplx "refatore main.py"      # Analisa/plano/cria
+pplx plan "feature"          # PLAN.md checklist
+pplx edit arquivo.py         # Edita + diff
+pplx tui                     # TUI fullscreen
+```
+
+## CONTEXT (Gemini.md style)
+- **PPLX.md** - Projeto global (auto-carrega)
+- **PLAN.md** - Checklist ativa [ ] / [x]
+- **.pplx_history.json** - Chat compactado
+
+## SYSTEM PROMPT
+```
+ANALISE → ## PLANO (checklist) → ## CÓDIGO (```python) → 3 OPÇÕES: 1.Criar 2.Editar 3.Continuar
+Salve PPLX.md/PLAN.md
+```
+
+## FEATURES
+```
+- Tiktoken compressão histórico >6k tokens
+- Auto-abre VS Code após criar/editar
+- Git diff preview
+- Windows/PowerShell nativo
+- pip install -e . → pplx global
+```
+
+## ARQUIVOS + DEPENDÊNCIAS
+```
+requests rich click tiktoken prompt_toolkit textual python-dotenv
+pyproject.toml + pplx_cli/* (6 arquivos)
+```
+
+**CÓDIGO 100% FUNCIONAL** `pip install -e .` → `pplx tui` abre ASCII interface + `pplx "planeje X"` cria arquivos! 
+```
+
+**Prompt perfeito** — TUI ASCII + ciclo análise/plano/criação + Gemini.md! Testa no `pplx one-shot` 🚀

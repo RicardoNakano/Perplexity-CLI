@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pplx-cli"
+version = "0.1.0"
+description = "Perplexity CLI"
+authors = [{name = "Você", email = "seu@email.com"}]
+dependencies = [
+    "requests",
+    "rich",
+    "prompt_toolkit",
+    "python-dotenv",
+    "click",
+    "tiktoken",
+]
+
+[project.scripts]
+pplx = "pplx_cli.cli:main"

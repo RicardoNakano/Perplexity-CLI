@@ -1,0 +1,43 @@
+# Secretas
+.env
+*.key
+
+# Ambientes virtuais
+.venv/
+venv/
+ENV/
+env/
+bin/
+lib/
+share/
+include/
+pyvenv.cfg
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribuição / Build
+dist/
+build/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Histórico local do PPLX
+.pplx_history.json
+PLAN.md
+PPLX.md
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Sistema
+Thumbs.db
+Desktop.ini
+.DS_Store
