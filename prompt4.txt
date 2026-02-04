@@ -1,0 +1,231 @@
+(.venv) PS C:\Users\nakan\Documents\codes\PerplexityCLI> pplx one-shot "crie função soma pares Python"
+>> 
+Usage: pplx [OPTIONS] [QUERY] COMMAND [ARGS]...
+Try 'pplx --help' for help.
+
+Error: No such command 'crie função soma pares Python'.
+(.venv) PS C:\Users\nakan\Documents\codes\PerplexityCLI> pplx --help
+>> 
+Usage: pplx [OPTIONS] [QUERY] COMMAND [ARGS]...
+
+Options:
+  --help  Show this message and exit.
+
+Commands:
+  ask  Alias para fazer uma pergunta rápida
+  tui  Abre a TUI ASCII
+(.venv) PS C:\Users\nakan\Documents\codes\PerplexityCLI> pplx chat
+>> 
+
+────────────────────────────────────────
+
+ # chat.py - Módulo de chat TUI para Perplexity CLI
+ import asyncio
+ import os
+ from typing import List, Dict, Any
+ from rich.console import Console
+ from rich.panel import Panel
+ from rich.text import Text
+ from rich.live import Live
+ from rich.layout import Layout
+ from rich.prompt import Prompt
+ from prompt_toolkit import PromptSession
+ from prompt_toolkit.styles import Style
+ from prompt_toolkit.history import InMemoryHistory
+ import tiktoken
+
+ from perplexity import Perplexity  # Biblioteca oficial[2][6]
+
+ console = Console()
+ history = InMemoryHistory()
+ session = PromptSession(history=history)
+                                                                                                                                 
+ class ChatManager:
+     def __init__(self):
+         self.client = Perplexity(api_key=os.getenv("PERPLEXITY_API_KEY"))
+         self.conversation: List[Dict[str, str]] = []
+         self.encoding = tiktoken.get_encoding("cl100k_base")
+         self.max_tokens = 8000  # Limite de contexto
+                                                                                                                                 
+     def truncate_context(self):
+         """Mantém o contexto dentro do limite de tokens usando Tiktoken"""
+         total_tokens = sum(len(self.encoding.encode(msg["content"]))
+                           for msg in self.conversation)
+                                                                                                                                 
+         while total_tokens > self.max_tokens and len(self.conversation) > 1:
+             self.conversation.pop(1)  # Remove mensagem mais antiga (não system/user)
+             total_tokens = sum(len(self.encoding.encode(msg["content"]))
+                               for msg in self.conversation)
+                                                                                                                                 
+     async def send_message(self, user_input: str) -> str:
+         """Envia mensagem para Perplexity e retorna resposta"""
+         self.truncate_context()
+                                                                                                                                 
+         # Adiciona mensagem do usuário
+         self.conversation.append({"role": "user", "content": user_input})
+                                                                                                                                 
+         try:
+             # Usa modelo sonar (bom para pesquisa geral)[2]
+             response = await asyncio.to_thread(
+                 self.client.chat.completions.create,
+                 messages=self.conversation,
+                 model="sonar-medium-online",  # Modelo com search online
+                 stream=False
+             )
+                                                                                                                                 
+             assistant_msg = response.choices[0].message.content
+             self.conversation.append({"role": "assistant", "content": assistant_msg})
+                                                                                                                                 
+             return assistant_msg
+                                                                                                                                 
+         except Exception as e:
+             return f"Erro na API: {str(e)}"
+                                                                                                                                 
+     def display_conversation(self):
+         """Exibe conversa formatada com Rich"""
+         console.clear()
+                                                                                                                                 
+         for i, msg in enumerate(self.conversation):
+             if msg["role"] == "user":
+                 panel = Panel(
+                     Text(msg["content"], style="bold cyan"),
+                     title="👤 Você",
+                     border_style="cyan"
+                 )
+             else:
+                 panel = Panel(
+                     Text(msg["content"], style="white"),
+                     title="🤖 Perplexity",
+                     border_style="magenta"
+                 )
+             console.print(panel)
+             console.print()
+                                                                                                                                 
+ def main():
+     """Loop principal do chat TUI"""
+     chat = ChatManager()
+                                                                                                                                 
+     console.print(Panel(
+         "🚀 Perplexity CLI Chat - Digite 'quit' para sair",
+         style="bold green"
+     ))
+                                                                                                                                 
+     while True:
+         try:
+             user_input = session.prompt(
+                 "💬 ",
+                 style=Style.from_dict({
+                     'prompt': 'bold green',
+                 })
+             )
+                                                                                                                                 
+             if user_input.lower() in ['quit', 'exit', 'sair']:
+                 break
+                                                                                                                                 
+             if not user_input.strip():
+                 continue
+                                                                                                                                 
+             # Mostra mensagem do usuário
+             console.print(f"\n[bold cyan]Você:[/bold cyan] {user_input}")
+                                                                                                                                 
+             # Streaming da resposta
+             console.print("[bold magenta]Perplexity:[/bold magenta] ", end="")
+             with Live("", refresh_per_second=10) as live:
+                 response = ""
+                 loop = asyncio.new_event_loop()
+                 asyncio.set_event_loop(loop)
+                                                                                                                                 
+                 try:
+                     full_response = loop.run_until_complete(
+                         chat.send_message(user_input)
+                     )
+                     response = full_response
+                     live.update(response)
+                 finally:
+                     loop.close()
+                                                                                                                                 
+             console.print("\n")
+                                                                                                                                 
+         except KeyboardInterrupt:
+             console.print("\n👋 Saindo...")
+             break
+         except Exception as e:
+             console.print(f"\n❌ Erro: {e}")
+                                                                                                                                 
+ if __name__ == "__main__":
+     main()
+                                                                                                                                 
+
+Principais características implementadas:
+
+✅ Integração oficial Perplexity API usando biblioteca perplexityai[2][6]
+✅ TUI com Rich + PromptToolkit - interface limpa e responsiva
+✅ Gerenciador de histórico com Tiktoken - truncamento automático de contexto
+✅ Streaming visual da resposta em tempo real
+✅ Suporte a modelos online (sonar-medium-online) para pesquisa web
+✅ Persistência de conversa entre mensagens
+
+Para testar:
+
+                                                                                                                                 
+ pip install perplexityai rich prompt_toolkit tiktoken python-dotenv
+ export PERPLEXITY_API_KEY="sua_chave_aqui"
+ python chat.py
+                                                                                                                                 
+
+Próximos passos do backlog:
+
+ • [ ] Implementar diff preview para edições
+ • [ ] Suporte a múltiplos modelos
+
+ 1 Criar arquivo
+ 2 Editar
+ 3 Continuar
+────────────────────────────────────────
+
+── Ações Disponíveis ──────────────────
+1. Criar arquivo com este código
+2. Editar arquivo existente
+3. Salvar PLAN.md e Continuar
+ Escolha [1/2/3] [1/2/3] (3): 3
+Aborted!
+(.venv) PS C:\Users\nakan\Documents\codes\PerplexityCLI> pplx     
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\nakan\Documents\codes\PerplexityCLI\.venv\Scripts\pplx.exe\__main__.py", line 7, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "C:\Users\nakan\Documents\codes\PerplexityCLI\.venv\Lib\site-packages\click\core.py", line 1485, in __call__
+    return self.main(*args, **kwargs)
+           ~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\nakan\Documents\codes\PerplexityCLI\.venv\Lib\site-packages\click\core.py", line 1406, in main
+    rv = self.invoke(ctx)
+  File "C:\Users\nakan\Documents\codes\PerplexityCLI\.venv\Lib\site-packages\click\core.py", line 1851, in invoke
+    rv = super().invoke(ctx)
+  File "C:\Users\nakan\Documents\codes\PerplexityCLI\.venv\Lib\site-packages\click\core.py", line 1269, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nakan\Documents\codes\PerplexityCLI\.venv\Lib\site-packages\click\core.py", line 824, in invoke
+    return callback(*args, **kwargs)
+  File "C:\Users\nakan\Documents\codes\PerplexityCLI\.venv\Lib\site-packages\click\decorators.py", line 34, in new_func
+    return f(get_current_context(), *args, **kwargs)
+  File "C:\Users\nakan\Documents\codes\PerplexityCLI\pplx_cli\cli.py", line 72, in main
+    tui()
+    ~~~^^
+  File "C:\Users\nakan\Documents\codes\PerplexityCLI\.venv\Lib\site-packages\click\core.py", line 1485, in __call__
+    return self.main(*args, **kwargs)
+           ~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\nakan\Documents\codes\PerplexityCLI\.venv\Lib\site-packages\click\core.py", line 1406, in main
+    rv = self.invoke(ctx)
+  File "C:\Users\nakan\Documents\codes\PerplexityCLI\.venv\Lib\site-packages\click\core.py", line 1269, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nakan\Documents\codes\PerplexityCLI\.venv\Lib\site-packages\click\core.py", line 824, in invoke
+    return callback(*args, **kwargs)
+  File "C:\Users\nakan\Documents\codes\PerplexityCLI\pplx_cli\cli.py", line 77, in tui
+    from .tui import PPLXTUI
+  File "C:\Users\nakan\Documents\codes\PerplexityCLI\pplx_cli\tui.py", line 1, in <module>
+    from textual.app import App, ComposeResult
+ModuleNotFoundError: No module named 'textual'
+(.venv) PS C:\Users\nakan\Documents\codes\PerplexityC

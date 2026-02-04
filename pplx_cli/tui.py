@@ -1,7 +1,6 @@
 from textual.app import App, ComposeResult
 from textual.widgets import Header, Footer, Input, Markdown, Static, ScrollableContainer
-from textual.containers import Container, Vertical
-from textual.binding import Binding
+from textual.containers import Vertical
 from .client import client
 from .history import HistoryManager
 from .context import ContextLoader
@@ -10,32 +9,25 @@ import os
 class PPLXTUI(App):
     CSS = """
     Screen {
-        background: #1e1e1e;
+        background: #121212;
     }
-    #chat-container {
-        height: 70%;
+    #chat-scroll {
+        height: 1fr;
         border: solid cyan;
         padding: 1;
-        margin: 1;
+        margin-bottom: 1;
     }
-    #plan-container {
-        height: 20%;
+    #plan-view {
+        height: 6;
         border: solid green;
         padding: 1;
-        margin: 1;
         color: green;
+        margin-bottom: 1;
     }
     Input {
-        dock: bottom;
-        margin: 1;
         border: double bright_blue;
     }
     """
-
-    BINDINGS = [
-        Binding("q", "quit", "Sair"),
-        Binding("ctrl+l", "clear", "Limpar Chat"),
-    ]
 
     def __init__(self):
         super().__init__()
@@ -44,8 +36,9 @@ class PPLXTUI(App):
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
-        yield ScrollableContainer(id="chat-container")
-        yield Static(self.history_mgr.load_plan(), id="plan-container")
+        with ScrollableContainer(id="chat-scroll"):
+            yield Markdown("# Perplexity CLI v0.3\nDigite sua mensagem abaixo para começar.")
+        yield Static(self.history_mgr.load_plan(), id="plan-view")
         yield Input(placeholder="Digite aqui... [Enter] para enviar", id="user-input")
         yield Footer()
 
@@ -57,27 +50,33 @@ class PPLXTUI(App):
         input_widget = self.query_one("#user-input")
         input_widget.value = ""
         
-        chat_container = self.query_one("#chat-container")
-        chat_container.mount(Markdown(f"**Você:** {user_text}"))
+        chat_scroll = self.query_one("#chat-scroll")
+        chat_scroll.mount(Markdown(f"**Você:** {user_text}"))
         
-        # Carrega contexto
+        # Carrega contexto projeto + arquivos mencionados
         context = ContextLoader.get_full_context()
         full_query = f"{context}\n\nUSER QUERY: {user_text}"
         
         self.history.append({"role": "user", "content": full_query})
         
+        # Feedback visual
+        chat_scroll.mount(Markdown("*Perplexity está pensando...*"))
+        chat_scroll.scroll_end()
+
         # Resposta da API
         response = client.chat(self.history)
         
         if response:
-            chat_container.mount(Markdown(f"**Perplexity:**\n{response}"))
+            # Remove o feedback visual de pensando e adiciona a resposta
+            chat_scroll.query("Markdown").last().remove()
+            chat_scroll.mount(Markdown(f"**Perplexity:**\n{response}"))
             self.history.append({"role": "assistant", "content": response})
             self.history_mgr.save(self.history)
             
-            # Atualiza visão do plano se mudou
-            self.query_one("#plan-container").update(self.history_mgr.load_plan())
+            # Atualiza visão do plano
+            self.query_one("#plan-view").update(self.history_mgr.load_plan())
         
-        chat_container.scroll_end()
+        chat_scroll.scroll_end()
 
 if __name__ == "__main__":
     app = PPLXTUI()

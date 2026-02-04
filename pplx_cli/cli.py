@@ -18,7 +18,7 @@ def handle_actions(resposta):
     if not resposta:
         return
 
-    # Se houver bloco de código ou definição de função
+    # Se houver bloco de código ou definição de função/classe
     if '```python' in resposta or 'def ' in resposta or 'class ' in resposta:
         console.print("\n[bold yellow]── Ações Disponíveis ──────────────────[/bold yellow]")
         console.print("1. [green]Criar arquivo com este código[/green]")
@@ -28,11 +28,9 @@ def handle_actions(resposta):
         choice = Prompt.ask(" Escolha [1/2/3]", choices=["1", "2", "3"], default="3")
 
         if choice == "1":
-            # Tenta achar o nome do arquivo no texto ou pede
             match = re.search(r'#\s*(?:Arquivo|Nome do arquivo):\s*([\w\./-]+)', resposta)
             filename = match.group(1) if match else Prompt.ask("Nome do arquivo para criar")
             
-            # Extrai o conteúdo do primeiro bloco de código encontrado
             code_match = re.search(r'```python\n(.*?)\n```', resposta, re.DOTALL)
             content = code_match.group(1) if code_match else resposta
             
@@ -50,12 +48,11 @@ def handle_actions(resposta):
             else:
                 console.print("[red]Arquivo não encontrado.[/red]")
 
-    # Se houver um plano, salva no PLAN.md
+    # Lógica de atualização do PLAN.md
     plan_match = re.search(r'## PLANO\n(.*?)(?=\n##|$)', resposta, re.DOTALL)
     if plan_match:
         plan_content = plan_match.group(1).strip()
         current_plan = history_mgr.load_plan()
-        # Evita duplicar o mesmo plano se for exatamente igual
         if plan_content not in current_plan:
             new_plan = f"{current_plan}\n\n### Novo Passo\n{plan_content}"
             history_mgr.save_plan(new_plan)
@@ -71,19 +68,24 @@ def main(ctx, query):
         else:
             tui()
 
+@main.command(name="one-shot")
+@click.argument('query')
+def one_shot_command(query):
+    """Executa uma query única e sai."""
+    one_shot(query)
+
 @main.command()
 def tui():
-    """Abre a TUI ASCII"""
+    """Abre a interface TUI completa"""
     from .tui import PPLXTUI
     app = PPLXTUI()
     app.run()
 
 def one_shot(query):
-    """Modo CLI direto com contexto e ações."""
+    """Modo direto com contexto e ações."""
     hist = history_mgr.load()
     project_ctx = ContextLoader.get_full_context()
     
-    # Busca arquivos no prompt para carregar conteúdo
     files = re.findall(r'[\w\./-]+\.\w+', query)
     file_ctx = ""
     for f in set(files):
@@ -108,7 +110,7 @@ def one_shot(query):
 @main.command()
 @click.argument('query')
 def ask(query):
-    """Alias para fazer uma pergunta rápida"""
+    """Pergunta rápida"""
     one_shot(query)
 
 if __name__ == '__main__':
