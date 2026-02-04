@@ -3,64 +3,53 @@ import os
 import subprocess
 import re
 from rich.console import Console
-from rich.panel import Panel
-from rich.live import Live
-from rich.layout import Layout
 from rich.markdown import Markdown
 from rich.prompt import Prompt, Confirm
 from .client import client
 from .history import HistoryManager
+from .context import ContextLoader
 from . import config
 
 console = Console()
 history_mgr = HistoryManager()
 
-def get_file_context(text):
-    """Detecta arquivos mencionados no texto e retorna seu conteúdo."""
-    files = re.findall(r'[\w\./-]+\.\w+', text)
-    context = ""
-    for f in set(files):
-        if os.path.exists(f) and os.path.isfile(f):
-            try:
-                with open(f, 'r', encoding='utf-8') as file:
-                    context += f"\n--- Conteúdo de {f} ---\n{file.read()}\n"
-            except:
-                pass
-    return context
-
-def apply_code_changes(response):
-    """Extrai blocos de código da resposta e oferece para salvar/editar."""
-    # Procura por blocos de código
-    code_blocks = re.findall(r'```(?:\w+)?\n(.*?)\n```', response, re.DOTALL)
-    
-    for block in code_blocks:
-        # Tenta identificar o nome do arquivo no bloco
-        match = re.search(r'#\s*(?:Nome do arquivo|Arquivo):\s*([\w\./-]+)', block)
-        if match:
-            filename = match.group(1)
-            if Confirm.ask(f"Deseja salvar as alterações em [bold cyan]{filename}[/bold cyan]?"):
-                os.makedirs(os.path.dirname(filename), exist_ok=True) if os.path.dirname(filename) else None
-                
-                # Se for um diff (estilo Aider), poderíamos aplicar, mas por simplicidade vamos salvar o conteúdo
-                content = re.sub(r'#\s*(?:Nome do arquivo|Arquivo):\s*[\w\./-]+\n', '', block).strip()
-                
-                with open(filename, 'w', encoding='utf-8') as f:
-                    f.write(content)
-                console.print(f"[green]✅ {filename} atualizado![/green]")
-                
-                if Confirm.ask(f"Abrir {filename} no VS Code?"):
-                    subprocess.run(["code", filename], shell=True)
-
-def update_plan(response):
-    """Extrai o plano da resposta e atualiza o PLAN.md."""
+def handle_options(response):
+    """Sempre oferece as 3 opções após uma resposta com código ou plano."""
+    # Extrai blocos de código
+    code_match = re.search(r'```python\n(?:# Arquivo: ([\w\./-]+)\n)?(.*?)\n```', response, re.DOTALL)
     plan_match = re.search(r'## PLANO\n(.*?)(?=\n##|$)', response, re.DOTALL)
+
+    console.print("\n[bold yellow]Opções Disponíveis:[/bold yellow]")
+    console.print("1. [bold green]Criar/Atualizar Arquivo[/bold green]")
+    console.print("2. [bold blue]Editar Arquivo Existente[/bold blue]")
+    console.print("3. [bold white]Salvar PLAN.md e Continuar[/bold white]")
+    
+    choice = Prompt.ask("Escolha uma ação", choices=["1", "2", "3"], default="3")
+
+    if choice == "1" and code_match:
+        filename = code_match.group(1) or Prompt.ask("Nome do arquivo para salvar")
+        content = code_match.group(2).strip()
+        
+        os.makedirs(os.path.dirname(filename), exist_ok=True) if os.path.dirname(filename) else None
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(content)
+        console.print(f"[green]✅ {filename} criado/atualizado![/green]")
+        os.system(f"code {filename}")
+
+    elif choice == "2":
+        filename = Prompt.ask("Qual arquivo deseja editar?")
+        if os.path.exists(filename):
+            os.system(f"code {filename}")
+            console.print(f"[blue]📝 {filename} aberto no VS Code.[/blue]")
+        else:
+            console.print("[red]Arquivo não encontrado.[/red]")
+
     if plan_match:
         plan_content = plan_match.group(1).strip()
-        if Confirm.ask("Deseja atualizar o PLAN.md?"):
-            current_plan = history_mgr.load_plan()
-            new_plan = f"{current_plan}\n\n### Novo Plano\n{plan_content}"
-            history_mgr.save_plan(new_plan)
-            console.print("[green]✅ PLAN.md atualizado![/green]")
+        current_plan = history_mgr.load_plan()
+        new_plan = f"{current_plan}\n\n### Atualização\n{plan_content}"
+        history_mgr.save_plan(new_plan)
+        console.print("[green]✅ PLAN.md atualizado![/green]")
 
 @click.group(invoke_without_command=True)
 @click.pass_context
@@ -70,90 +59,49 @@ def main(ctx, query):
         if query:
             one_shot(query)
         else:
-            chat()
-
-@main.command()
-def chat():
-    """TUI Interativa com Histórico e Contexto"""
-    hist = history_mgr.load()
-    project_context = history_mgr.load_project_context()
-    
-    console.clear()
-    console.print(Panel.fit(
-        "      🚀 [bold cyan]Perplexity CLI[/bold cyan] 🚀      \n[dim]Contexto: PPLX.md + PLAN.md carregados",
-        border_style="bright_blue"
-    ))
-
-    while True:
-        user_input = Prompt.ask("\n[bold yellow]>[/bold yellow]")
-        if user_input.lower() in ['exit', 'quit', 'q']:
-            break
-            
-        # Adiciona contexto de arquivos mencionados
-        file_ctx = get_file_context(user_input)
-        full_query = f"{project_context}\n{file_ctx}\nUSER QUERY: {user_input}"
-        
-        hist.append({"role": "user", "content": full_query})
-        
-        with console.status("[bold green]Pensando..."):
-            resposta = client.chat(hist)
-        
-        if resposta:
-            console.print(f"\n[bold cyan]Perplexity[/bold cyan] ──────────────────────────")
-            console.print(Markdown(resposta))
-            console.print(f"──────────────────────────────────────────")
-            
-            hist.append({"role": "assistant", "content": resposta})
-            history_mgr.save(hist)
-            
-            update_plan(resposta)
-            apply_code_changes(resposta)
-        else:
-            console.print("[red]Erro ao obter resposta.[/red]")
-
-def one_shot(query):
-    """Executa uma query direta com contexto."""
-    project_context = history_mgr.load_project_context()
-    file_ctx = get_file_context(query)
-    
-    messages = [
-        {"role": "system", "content": config.SYSTEM_PROMPT},
-        {"role": "user", "content": f"{project_context}\n{file_ctx}\nQUERY: {query}"}
-    ]
-    
-    with console.status("[bold green]Analisando..."):
-        resposta = client.chat(messages)
-    
-    if resposta:
-        console.print(Markdown(resposta))
-        update_plan(resposta)
-        apply_code_changes(resposta)
+            tui()
 
 @main.command()
 def tui():
-    """Abre a interface TUI completa (Alias para chat)"""
-    chat()
+    """Abre a interface TUI completa (Textual)"""
+    from .tui import PPLXTUI
+    app = PPLXTUI()
+    app.run()
+
+@main.command()
+@click.argument('query')
+def chat(query):
+    """Alias para query rápida no terminal"""
+    one_shot(query)
+
+def one_shot(query):
+    """Executa uma query com contexto total e oferece as 3 opções."""
+    hist = history_mgr.load()
+    context = ContextLoader.get_full_context()
+    
+    # Verifica se há arquivos mencionados para ler conteúdo
+    files = re.findall(r'[\w\./-]+\.\w+', query)
+    file_context = ""
+    for f in set(files):
+        file_context += ContextLoader.get_file_content(f)
+
+    full_query = f"{context}\n{file_context}\nUSER QUERY: {query}"
+    hist.append({"role": "user", "content": full_query})
+    
+    with console.status("[bold green]Analisando projeto..."):
+        response = client.chat(hist)
+    
+    if response:
+        console.print(Markdown(response))
+        hist.append({"role": "assistant", "content": response})
+        history_mgr.save(hist)
+        handle_options(response)
 
 @main.command()
 @click.argument('feature')
 def plan(feature):
-    """Cria um plano detalhado para uma nova funcionalidade no PLAN.md"""
-    query = f"Crie um plano detalhado (checklist) para a seguinte funcionalidade: {feature}. Use o formato ## PLANO."
-    one_shot(query)
-
-@main.command()
-@click.argument('filename')
-def edit(filename):
-    """Edita um arquivo específico com ajuda da IA"""
-    if not os.path.exists(filename):
-        console.print(f"[red]Arquivo {filename} não encontrado.[/red]")
-        return
-        
-    with open(filename, 'r', encoding='utf-8') as f:
-        content = f.read()
-    
-    instrucao = Prompt.ask(f"O que deseja mudar em {filename}?")
-    query = f"Edite o arquivo {filename}. Conteúdo atual:\n```\n{content}\n```\nInstrução: {instrucao}"
+    """Cria um plano detalhado para uma funcionalidade."""
+    query = f"Crie um plano (checklist) para: {feature}"
     one_shot(query)
 
 if __name__ == '__main__':

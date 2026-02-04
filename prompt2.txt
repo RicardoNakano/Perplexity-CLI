@@ -1,0 +1,77 @@
+```
+MELHORE meu repo https://github.com/RicardoNakano/Perplexity-CLI com estas features EXATAS:
+
+## 1. PPLX.md + PLAN.md (Gemini.md style)
+```
+PPLX.md = contexto projeto global (carrega AUTO em toda query)
+PLAN.md = checklist ativa com [ ] / [x] (append automático)
+```
+
+## 2. 3 OPÇÕES SEMPRE após código/plano
+```
+Após QUALQUER resposta com código:
+"1. Criar soma.py [y/N]"
+"2. Editar main.py [y/N]"
+"3. Salvar PLAN.md e continuar"
++ os.system("code arquivo.py") auto-abre VS Code
+```
+
+## 3. TUI ASCII Completa (pplx tui)
+```
+┌─ pplx CLI v0.2 ───────────────────┐
+│ Histórico mensagens ↑              │
+│                                    │
+│ 📋 PLAN.md                         │
+│ [ ] Passo 1 ✓ Passo 2              │
+│                                    │
+│ > "refatore main.py" [Enviar][Plan]│
+└────────────────────────────────────┘
+```
+
+## 4. System Prompt FORÇADO
+```
+"Você é engenheiro CLI. SEMPRE formato:
+## PLANO
+1. [ ] Analisar arquivos
+2. [ ] Criar/editar X.py
+
+## CÓDIGO PRONTO
+```python
+def func():
+    pass
+```
+
+NO FINAL: '1.Criar 2.Editar 3.Continuar'"
+```
+
+## 5. Compactação Histórico
+```
+tiktoken >6000 tokens → resumo auto via API
+.history.json → últimas 10 mensagens
+```
+
+## MUDANÇAS ARQUIVOS
+```
+pplx_cli/
+├── config.py → + SYSTEM_PROMPT + PPLX_PATH
+├── client.py → + system_prompt + auto_context
+├── cli.py → + sempre_3_opcoes() + pplx tui  
+├── tui.py → Textual/rich TUI completa
+├── context.py → PPLX.md + PLAN.md loader
+```
+
+## DEPENDÊNCIAS
+```
+requests rich click tiktoken textual prompt_toolkit python-dotenv
+```
+
+**GERE CÓDIGO COMPLETO**:
+1. Arquivos NOVOS (tui.py, context.py)
+2. Diferenças arquivos existentes 
+3. pyproject.toml atualizado
+
+**TESTÁVEL**: `pip install -e .` → `pplx tui` + `pplx "refatore X"` → cria arquivos + abre VS Code!
+
+Windows/PowerShell nativo. Modelo sempre "sonar".
+```
+

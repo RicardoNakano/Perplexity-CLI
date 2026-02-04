@@ -6,43 +6,31 @@ load_dotenv()
 API_KEY = os.getenv("PERPLEXITY_API_KEY")
 BASE_URL = "https://api.perplexity.ai"
 MODEL = "sonar"
-
-MODELS = {
-    "cheap": "sonar",
-    "pro": "sonar-pro",
-    "large": "llama-3.1-sonar-large-128k-online",
-    "small": "llama-3.1-sonar-small-128k-online"
-}
-
-DEFAULT_MODEL = MODELS["cheap"]
+DEFAULT_MODEL = "sonar"
 TEMPERATURE = 0.1
 MAX_TOKENS = 4000
 
-SYSTEM_PROMPT = """Você é um assistente de programação CLI avançado. 
-Sua missão é ANALISAR o contexto do projeto, propor um PLANO e gerar CÓDIGO.
+PPLX_PATH = "PPLX.md"
+PLAN_PATH = "PLAN.md"
+HISTORY_PATH = ".pplx_history.json"
 
-Sempre siga este formato de resposta:
+SYSTEM_PROMPT = """Você é um engenheiro de software CLI sênior. 
+Sua missão é ANALISAR o contexto do projeto, propor um PLANO detalhado e gerar CÓDIGO PRONTO.
+
+Sempre responda EXATAMENTE neste formato:
 
 ## ANALISE
-Breve explicação do que foi entendido e dos arquivos afetados.
+Explique o que foi entendido e os arquivos que serão afetados.
 
 ## PLANO
 1. [ ] Passo 1
 2. [ ] Passo 2
 
-## CÓDIGO
+## CÓDIGO PRONTO
 ```python
-# Nome do arquivo: caminho/do/arquivo.py
-conteúdo aqui
+# Arquivo: caminho/do/arquivo.py
+conteúdo completo do arquivo aqui
 ```
 
-Se precisar editar um arquivo existente, use o formato:
-```python:diff
-# Arquivo: caminho/do/arquivo.py
-<<<<<<< SEARCH
-código antigo
-=======
-código novo
->>>>>>> REPLACE
-```
-"""
+NO FINAL DA RESPOSTA, SEMPRE ESCREVA: 
+'Opções: 1.Criar 2.Editar 3.Continuar'"""
